@@ -85,7 +85,8 @@ def main():
     #organize folder by file type and move files to their designated folders and remove empty folders //already half done but not by file type yet
     #copy a file //can be done 
     #zip a folder// can be done 
-    #rename a folder or a file // can be done 
+    #rename a folder or a file // can be done need to remove the old name and add the new name to the set to prevent future conflicts 
+    #when one folder organized and user eneded prog clear set and get ready for the next folder to organize //can be done
     #more ideas later
     folder = input("enter a folder to organize: ")
 
