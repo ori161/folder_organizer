@@ -1,11 +1,12 @@
 # assets
 import os
 import shutil
+from collections import defaultdict
 
-files_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.pdf', '.docx', '.xlsx', '.txt', '.mp3', '.mp4', '.avi', '.mkv', '.zip', '.rar', '.7z', '.exe', '.dll', '.html', '.css', '.js', '.py', '.java', '.cpp',
-                    '.c', '.h', '.php', '.rb', '.go', '.swift', '.ts', '.tsx']  # list of common file extensions not in work at the moment but might be useful in the future to sort the files into their designated folder.
+files_extension_by_group = {'photos': ['.png', '.jpeg', '.jpg', '.gif', '.bmp', '.tiff', '.webp'], 'documents': []}
 
 name_of_files_set = set()  # global set to check names that already exist
+sort_files = defaultdict(list) # dictionary to sort files by keys
 
 # 1.----------move all files to parent folder---------------------------------------
 
@@ -79,20 +80,36 @@ def move_files(folder, subfolder):
                 shutil.move(file_path, folder)
 
 
+def sort_files_to_types(folder):
+    # basically just iterate through the main folder and sort the files
+    # by their extension for later method to sort it to organized files
+    for file in os.listdir(folder):
+        if not os.path.isdir(file):
+            file_name,extension = os.path.splitext(file)
+
+            sort_files[extension].append(file) # add to dictionary
+
 # 3. ----------------------main func ------------------------------------------------
+
+
 def main():
     # i will do few features like removing a file /folder with caution if some files are valuble //later 
-    #organize folder by file type and move files to their designated folders and remove empty folders //already half done but not by file type yet
-    #copy a file //can be done 
-    #zip a folder// can be done 
-    #rename a folder or a file // can be done need to remove the old name and add the new name to the set to prevent future conflicts 
-    #when one folder organized and user eneded prog clear set and get ready for the next folder to organize //can be done
-    #more ideas later
+    # organize folder by file type and move files to their designated folders and remove
+    # empty folders //already half done but not by file type yet
+
+    # copy a file //can be done
+    # zip a folder// can be done
+
+    # rename a folder or a file // can be done need to remove the old
+    # name and add the new name to the set to prevent future conflicts
+
+    # when one folder organized and user eneded prog clear set and get
+    # ready for the next folder to organize //can be done
+    # more ideas later
     folder = input("enter a folder to organize: ")
 
     if os.path.exists(folder):
         extract_all_files_and_remove_folders(folder)
-
     else:
         print("not a folder path!")
 
