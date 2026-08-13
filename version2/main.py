@@ -1,9 +1,53 @@
 # assets
 import sys
+from pathlib import Path
 import os
 import shutil
 from collections import defaultdict
-from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QMessageBox
+from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QMessageBox, QFileDialog, QLabel
+from PySide6.QtCore import Qt
+
+def check():
+    # Target your Desktop so it's easy to find
+    desktop_path = Path.home() / "Desktop"
+    folder_name = desktop_path / "test_sorting_folder"
+
+    # Create the unzipped folder
+    folder_name.mkdir(parents=True, exist_ok=True)
+
+    # Define the dummy files and their contents
+    files_to_create = {
+    # Documents
+    "resume.pdf": "Dummy PDF content",
+    "notes.txt": "Dummy text notes",
+    "report.docx": "Dummy Word content",
+    "budget.xlsx": "Dummy Excel content",
+    # Images
+    "photo1.jpg": "Dummy image data",
+    "vacation.png": "Dummy image data",
+    "logo.svg": "Dummy vector data",
+    "screenshot.jpeg": "Dummy image data",
+    # Code / Text
+    "script.py": "print('Hello World')",
+    "index.html": "<h1>Test</h1>",
+    "styles.css": "body { color: red; }",
+    "Main.java": "public class Main {}",
+    # Audio / Video
+    "song.mp3": "Dummy audio data",
+    "podcast.wav": "Dummy audio data",
+    "clip.mp4": "Dummy video data",
+    # Archives / Others
+    "archive.zip": "Dummy archive data",
+    "data.json": '{"test": true}',
+    "config.yaml": "version: 1",
+    }
+
+    # Create the files inside the desktop folder
+    for filename, content in files_to_create.items():
+        file_path = folder_name / filename
+        file_path.write_text(content, encoding="utf-8")
+
+    print(f"Successfully created unzipped folder at:\n{folder_name}")
 
 
 CATEGORY_CONFIG = {
@@ -19,6 +63,7 @@ CATEGORY_CONFIG = {
     'fonts': ['.ttf', '.otf', '.woff', '.woff2', '.eot']
 } # here a programmer can add more categories and their extensions to sort files by type and move them to their designated folders
 
+
 files_extension_by_group = {} # this is what used in the code after we invert the category_config dictionary, it will look like this: {'.png': 'photos', '.jpeg': 'photos', '.jpg': 'photos', '.gif': 'photos', '.bmp': 'photos', '.tiff': 'photos', '.webp': 'photos'} 
 
 name_of_files_set = set()  # global set to check names that already exist
@@ -29,28 +74,30 @@ files_to_folders = {}
 
 # ------------managing class---------------------------------------------------------------------
 
-class FileOrganizerManager():
+class FolderOrganizerManager():
     def __init__(self):
         invert_Files_extension_by_group()
-
+       
 
     # 1.--------------organize folder method------------------------
-    def organize_file(self):
+    def organize_folder(self, screen):
         
-        folder = input("enter a folder to organize: ")
+        folder = QFileDialog.getExistingDirectory(screen, "enter folder to organize: ")
 
         if os.path.exists(folder):
             flag_method_one = False
             extract_all_files_and_remove_folders(folder)
             dictionary_files_keys_to_types_values(folder)
             sort_files_to_folders()
+            print(files_to_folders)
             move_files_to_folders(folder)
+            return f"succesfully organized"
         else:
-            raise(f"folder: {folder} does not exist.")
+            return f"folder: {folder} does not exist."
 
 
     # 2.--------------copy folder method-----------------------------
-    def copy_folder(src, dst):
+    def copy_folder(self, src, dst, screen):
         try:
             if not os.path.exists():
                 raise(f"the source {src} does not exist")
@@ -66,7 +113,7 @@ class FileOrganizerManager():
 
 
     # 3.--------------zip_folder method------------------------------
-    def zip_folder(src):
+    def zip_folder(self, src, screen):
         try:
             if not os.path.exists():
                 raise(f"the source {src} does not exist")
@@ -83,14 +130,38 @@ class FileOrganizerManager():
 class FileOrganizerGui(QWidget):
     def __init__(self):
         super().__init__()
+        self.methods = FolderOrganizerManager()
         self.initUI()
+        
 
     def initUI(self):
+        #initiate
         self.setWindowTitle("file organizer")
         self.showMaximized()
-
         screen = QVBoxLayout()
+        
+        self.info_label = QLabel("Choose an option below for your needs:")
+        self.info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        screen.addWidget(self.info_label)
 
+        screen.addStretch()
+        screen.addWidget(self.manage_buttons(), alignment=Qt.AlignmentFlag.AlignCenter)
+        screen.addStretch()
+        self.setLayout(screen)
+
+    def manage_buttons(self):
+        # file organizer button
+        self.button_method_one = QPushButton("organize file.")
+        self.button_method_one.setFixedSize(120, 50)
+        self.button_method_one.setFixedWidth(300)
+        self.button_method_one.setFixedHeight(45)
+        self.button_method_one.clicked.connect(lambda: self.handle_action(self.methods.organize_folder))
+        return self.button_method_one
+        
+    def handle_action(self, method):
+        result_action = method(self)
+        self.info_label.setText(result_action)
 
 #----------methods for folder clean and organize feature---------------------------------------
 
@@ -127,10 +198,19 @@ def dictionary_files_keys_to_types_values(folder):
     # basically just iterate through the main folder and sort the files
     # by their extension for later method to sort it to organized folders
     for file in os.listdir(folder):
-        if not os.path.isdir(file):
-            _,extension = os.path.splitext(file)
+        file_path = create_path(folder, file)
 
-            sort_files[file] = extension # add to dictionary
+        if os.path.isdir(file_path):
+            continue
+
+        # 2. Get the extension and make it lowercase for consistency
+        _, extension = os.path.splitext(file)
+        extension = extension.lower()
+
+        # 3. If the extension is in your configuration, track it.
+        # Anything else (.DS_Store, unknown formats, etc.) is automatically ignored
+        if extension in files_extension_by_group.keys():
+            sort_files[file] = extension
 
 
 def sort_files_to_folders(): # initiate a dictionary that has the file as a key and the name of the folder it belongs to as a value: {example.jpg : "pictures"...}
@@ -210,7 +290,7 @@ def main():
     # method 1
     #folder_managment()
     # when method one is needed again erase the sets and all the stuff that holds memories
-
+    check()
     app = QApplication(sys.argv)
     window = FileOrganizerGui()
     window.show()
