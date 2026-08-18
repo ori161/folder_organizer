@@ -8,6 +8,10 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
+# logger
+from logger import *
+folder_organizer_logger = setup_logger()
+
 CATEGORY_CONFIG = {
     'photos': ['.png', '.jpeg', '.jpg', '.gif', '.bmp', '.tiff', '.webp', '.svg', '.ico', '.heic'],
     'documents': ['.txt', '.pdf', '.doc', '.docx', '.odt', '.rtf', '.pages', '.tex', '.md'],
@@ -45,22 +49,27 @@ class FolderOrganizerManager:
                 return "Operation cancelled."
 
             if os.path.exists(folder):
+                folder_organizer_logger.info(f"starting organization for {folder}...")
                 extract_all_files_and_remove_folders(folder)
                 dictionary_files_keys_to_types_values(folder)
                 sort_files_to_folders()
                 move_files_to_folders(folder)
 
                 # clear "data bases" per use.
+                folder_organizer_logger.info("clearing databases...")
                 name_of_files_set.clear()
                 sort_files.clear()
                 files_to_folders.clear()
-
+                folder_organizer_logger.info("folder was successfully organized")
                 return "Successfully organized folder!"
             else:
+                folder_organizer_logger.warning("folder does not exist")
                 return f"Folder does not exist: {folder}"
         except PermissionError:
+            folder_organizer_logger.error("Error: Permission denied while accessing files.")
             return "Error: Permission denied while accessing files."
         except Exception as e:
+            folder_organizer_logger.exception(f"unexpected error occurred: {e}")
             return f"An unexpected error occurred: {e}"
 
     # 2.--------------copy folder method-----------------------------
@@ -68,23 +77,32 @@ class FolderOrganizerManager:
         try:
             src = QFileDialog.getExistingDirectory(screen, "Select a folder to copy")
             if not src:
+                folder_organizer_logger.warning("operation cancelled src is null")
                 return "Operation cancelled."
             if not os.path.exists(src):
+                folder_organizer_logger.warning(f"{src} does not exist")
                 return f"The source path does not exist: {src}"
             if os.path.isfile(src):
+                folder_organizer_logger.info(f"the selected src is a file: {src}")
                 return f"The selected source is a file, not a folder."
 
             dst = QFileDialog.getExistingDirectory(screen, "Select destination folder")
             if not dst:
+                folder_organizer_logger.warning("operation cancelled dst is null")
                 return "Operation cancelled."
 
+            folder_organizer_logger.info(f"making folder {dst} if not already exists...")
             os.makedirs(dst, exist_ok=True)
 
+            folder_organizer_logger.info(f"copying {src} to {dst}...")
             shutil.copytree(src, dst, dirs_exist_ok=True)
+            folder_organizer_logger.info(f"{src} copied successfully to {dst}")
             return f"Successfully copied folder contents."
         except PermissionError:
+            folder_organizer_logger.error("Permission denied during copy operation.")
             return "Error: Permission denied during copy operation."
         except Exception as e:
+            folder_organizer_logger.exception(f"Error: {e}")
             return f"Error: {e}"
 
 
@@ -220,6 +238,7 @@ def extract_all_files_and_remove_folders(folder):
                     remove_folder(subfolder)
         return True
     except Exception as e:
+        folder_organizer_logger.exception(f"Error processing folder structure: {e}")
         print(f"Error processing folder structure: {e}")
         return False
 
@@ -238,6 +257,7 @@ def dictionary_files_keys_to_types_values(folder):
             if extension in files_extension_by_group.keys():
                 sort_files[file] = extension
     except Exception as e:
+        folder_organizer_logger.exception(f"Error reading file types: {e}")
         print(f"Error reading file types: {e}")
 
 
@@ -254,6 +274,7 @@ def move_files_to_folders(main_folder):
             os.makedirs(folder_path, exist_ok=True)
             move_single_file(file_path, folder_path)
         except Exception as e:
+            folder_organizer_logger.exception(f"Could not move file {file}: {e}")
             print(f"Could not move file {file}: {e}")
 
 
@@ -284,6 +305,7 @@ def rename_file(old_name, new_name):
     try:
         os.rename(old_name, new_name)
     except Exception as e:
+        folder_organizer_logger.exception(f"Error renaming file: {e}")
         print(f"Error renaming file: {e}")
 
 
@@ -295,6 +317,7 @@ def remove_folder(folder):
     try:
         os.rmdir(folder)
     except Exception as e:
+        folder_organizer_logger.exception(f"Error removing empty folder {folder}: {e}")
         print(f"Error removing empty folder {folder}: {e}")
 
 
@@ -306,6 +329,7 @@ def move_all_files_from_folder(folder, subfolder):
                     file_path = os.path.join(subfolder, f)
                     shutil.move(file_path, folder)
     except Exception as e:
+        folder_organizer_logger.exception(f"Error moving files from subfolder: {e}")
         print(f"Error moving files from subfolder: {e}")
 
 
@@ -313,6 +337,7 @@ def move_single_file(file, dest_folder):
     try:
         shutil.move(file, dest_folder)
     except Exception as e:
+        folder_organizer_logger.exception(f"Error moving file {file}: {e}")
         print(f"Error moving file {file}: {e}")
 
 
@@ -323,7 +348,11 @@ def main():
     app = QApplication(sys.argv)
     window = FileOrganizerGui()
     window.show()
-    sys.exit(app.exec())
+
+    folder_organizer_logger.info("running program...")
+    run = app.exec()
+    folder_organizer_logger.info("ending program...")
+    sys.exit(run)
 
 
 if __name__ == '__main__':
