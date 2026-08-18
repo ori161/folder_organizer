@@ -1,0 +1,45 @@
+def check():
+    try:
+        # Target your Desktop so it's easy to find
+        desktop_path = Path.home() / "Desktop"
+        folder_name = desktop_path / "test_sorting_folder"
+
+        # Create the unzipped folder
+        folder_name.mkdir(parents=True, exist_ok=True)
+
+        # Define the dummy files and their contents
+        files_to_create = {
+            # Documents
+            "resume.pdf": "Dummy PDF content",
+            "notes.txt": "Dummy text notes",
+            "report.docx": "Dummy Word content",
+            "budget.xlsx": "Dummy Excel content",
+            # Images
+            "photo1.jpg": "Dummy image data",
+            "vacation.png": "Dummy image data",
+            "logo.svg": "Dummy vector data",
+            "screenshot.jpeg": "Dummy image data",
+            # Code / Text
+            "script.py": "print('Hello World')",
+            "index.html": "<h1>Test</h1>",
+            "styles.css": "body { color: red; }",
+            "Main.java": "public class Main {}",
+            # Audio / Video
+            "song.mp3": "Dummy audio data",
+            "podcast.wav": "Dummy audio data",
+            "clip.mp4": "Dummy video data",
+            # Archives / Others
+            "archive.zip": "Dummy archive data",
+            "data.json": '{"test": true}',
+            "config.yaml": "version: 1",
+        }
+
+        # Create the files inside the desktop folder
+        for filename, content in files_to_create.items():
+            file_path = folder_name / filename
+            file_path.write_text(content, encoding="utf-8")
+
+        print(f"Successfully created unzipped folder at:\n{folder_name}")
+    except Exception as e:
+        print(f"Error setting up test folder: {e}")
+
