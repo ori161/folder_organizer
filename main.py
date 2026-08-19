@@ -38,13 +38,17 @@ files_to_folders = {}
 
 class FolderOrganizerManager:
     def __init__(self):
-        invert_Files_extension_by_group(CATEGORY_CONFIG) # invert category config so the key is the extension
+        invert_Files_extension_by_group(CATEGORY_CONFIG)  # invert category config so the key is the extension
         # and the value os which folder this extension will be in later
 
     # 1.--------------organize folder method------------------------
-    def organize_folder(self, screen):
+    def organize_folder(self, screen, is_dry_run=False, folder_dry_run=None):
+        folder_organizer_logger.info("organize folder process start....")
         try:
-            folder = QFileDialog.getExistingDirectory(screen, "Select a folder to organize")
+            if not is_dry_run:
+                folder = QFileDialog.getExistingDirectory(screen, "Select a folder to organize")
+            else:
+                folder = folder_dry_run
             if not folder:
                 return "Operation cancelled."
 
@@ -73,9 +77,15 @@ class FolderOrganizerManager:
             return f"An unexpected error occurred: {e}"
 
     # 2.--------------copy folder method-----------------------------
-    def copy_folder(self, screen):
+    def copy_folder(self, screen, src_dry=None, dst_dry=None, is_dry_run=False):
+        folder_organizer_logger.info("starting copy folder process...")
         try:
-            src = QFileDialog.getExistingDirectory(screen, "Select a folder to copy")
+            # decide weather it is a dry run or not
+            if not is_dry_run:
+                src = QFileDialog.getExistingDirectory(screen, "Select a folder to copy")
+            else:
+                src = src_dry
+
             if not src:
                 folder_organizer_logger.warning("operation cancelled src is null")
                 return "Operation cancelled."
@@ -86,7 +96,11 @@ class FolderOrganizerManager:
                 folder_organizer_logger.info(f"the selected src is a file: {src}")
                 return f"The selected source is a file, not a folder."
 
-            dst = QFileDialog.getExistingDirectory(screen, "Select destination folder")
+            if not is_dry_run:
+                dst = QFileDialog.getExistingDirectory(screen, "Select destination folder")
+            else:
+                dst = dst_dry
+
             if not dst:
                 folder_organizer_logger.warning("operation cancelled dst is null")
                 return "Operation cancelled."
@@ -105,6 +119,35 @@ class FolderOrganizerManager:
             folder_organizer_logger.exception(f"Error: {e}")
             return f"Error: {e}"
 
+    def dry_run(self, screen):
+        try:
+            folder_organizer_logger.info("starting dry run...")
+            folder = QFileDialog.getExistingDirectory(screen, "Enter folder to dry run check on: ")
+            if not folder:
+                folder_organizer_logger.warning("the path is null")
+                return "operation cancelled."
+            if os.path.isfile(folder):
+                folder_organizer_logger.info(f"{folder} is a not a folder.")
+                return f"{folder} is a not a folder."
+            if not os.path.exists(folder):
+                folder_organizer_logger.warning("folder does not exist.")
+                return "folder does not exist."
+
+            # copy folder to a new folder to dry run
+            dry_run_folder_name = folder + "_dryrun"
+            self.copy_folder(screen, folder, dry_run_folder_name, True)
+
+            # dry run
+            self.organize_folder(screen, True, dry_run_folder_name)
+            folder_organizer_logger.info("run dry worked successfully")
+            return "run dry worked successfully"
+        except PermissionError:
+            folder_organizer_logger.error("Permission denied during copy operation.")
+            return "Error: Permission denied during copy operation."
+        except Exception as e:
+            folder_organizer_logger.exception(f"Error: {e}")
+            return f"Error: {e}"
+
 
 class FileOrganizerGui(QWidget):
     def __init__(self):
@@ -116,7 +159,7 @@ class FileOrganizerGui(QWidget):
         self.setWindowTitle("Smart File Organizer")
         self.resize(650, 500)
 
-        # used an ai to help me make a modern style
+        # used an AI to help me make a modern style
         self.setStyleSheet("""
             QWidget {
                 background-color: #f8fafc;
@@ -193,8 +236,12 @@ class FileOrganizerGui(QWidget):
         self.button_copy_folder = QPushButton("Copy Folder")
         self.button_copy_folder.clicked.connect(lambda: self.handle_action(self.methods.copy_folder))
 
+        self.button_dry_run = QPushButton("Dry Run")
+        self.button_dry_run.clicked.connect(lambda: self.handle_action(self.methods.dry_run))
+
         card_layout.addWidget(self.button_folder_organizer, alignment=Qt.AlignmentFlag.AlignCenter)
         card_layout.addWidget(self.button_copy_folder, alignment=Qt.AlignmentFlag.AlignCenter)
+        card_layout.addWidget(self.button_dry_run, alignment=Qt.AlignmentFlag.AlignCenter)
 
         main_layout.addWidget(card_frame)
 
