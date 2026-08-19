@@ -119,6 +119,8 @@ class FolderOrganizerManager:
             folder_organizer_logger.exception(f"Error: {e}")
             return f"Error: {e}"
 
+    # 3.--------------dry run method---------------------------------
+
     def dry_run(self, screen):
         try:
             folder_organizer_logger.info("starting dry run...")
